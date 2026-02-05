@@ -1,0 +1,48 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Claude
+.claude/
+
+# SQLite databases
+*.db
+
+# Compiled binaries
+piportal-server/piportal-server
+piportal-server/piportal-server-linux
+piportal-server/piportal-linux-*
+piportal-client/piportal
+piportal-client/piportal-client
+piportal-client/piportal-linux-*
+piportal-client/piportal-server-linux
+
+# Embedded dashboard build (copied from piportal-dashboard/dist)
+piportal-server/dashboard/dist/
+
+# Node
+piportal-dashboard/node_modules/
+piportal-dashboard/dist/
+piportal-dashboard/dist-ssr/
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Test artifacts
+coverage.out
