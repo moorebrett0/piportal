@@ -216,8 +216,9 @@ WantedBy=multi-user.target
 	fmt.Println("  ✓ PiPortal service installed and running!")
 	fmt.Println()
 	if cfg.Subdomain != "" {
-		fmt.Printf("  Your tunnel: https://%s.piportal.dev\n", cfg.Subdomain)
+		fmt.Printf("  Subdomain: %s\n", cfg.Subdomain)
 	}
+	fmt.Printf("  Server:    %s\n", cfg.Server)
 	fmt.Println()
 	fmt.Println("  Useful commands:")
 	fmt.Println("    sudo systemctl status piportal   # Check status")

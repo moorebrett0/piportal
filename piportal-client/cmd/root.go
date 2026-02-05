@@ -16,8 +16,8 @@ var rootCmd = &cobra.Command{
 	Long: `PiPortal - Secure tunnels for your Raspberry Pi and IoT devices.
 
 Expose your local web server to the internet with a simple command.
-Get a public URL like https://your-name.piportal.dev that forwards
-to your local service.`,
+Connect to your self-hosted PiPortal server and get a public URL
+that forwards to your local service.`,
 	// If no subcommand is given, show help
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()

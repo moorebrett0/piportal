@@ -46,3 +46,6 @@ pnpm-debug.log*
 
 # Test artifacts
 coverage.out
+
+# Deploy secrets
+deploy/.env

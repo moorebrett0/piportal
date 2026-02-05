@@ -48,21 +48,23 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Config file: %s\n", configPath)
 	fmt.Printf("  Server:      %s\n", cfg.Server)
 	if cfg.Subdomain != "" {
-		fmt.Printf("  Public URL:  https://%s.piportal.dev\n", cfg.Subdomain)
+		fmt.Printf("  Subdomain:   %s\n", cfg.Subdomain)
 	}
 	fmt.Printf("  Local addr:  %s:%d\n", cfg.LocalHost, cfg.LocalPort)
 	fmt.Printf("  Token:       %s...\n", maskToken(cfg.Token))
 	fmt.Println()
 
-	// Fetch bandwidth usage
-	usage, err := fetchUsage(cfg.Token)
-	if err == nil {
-		fmt.Println("  Bandwidth Usage")
-		fmt.Println("  ─────────────────────────────────────────")
-		fmt.Printf("  Tier:        %s\n", strings.Title(usage.Tier))
-		fmt.Printf("  Month:       %s\n", usage.Month)
-		fmt.Printf("  Used:        %s / %s (%.2f%%)\n", usage.UsedHuman, usage.LimitHuman, usage.PercentUsed)
-		fmt.Println()
+	// Fetch bandwidth usage (only if we have a server URL)
+	if cfg.ServerURL != "" {
+		usage, err := fetchUsage(cfg.ServerURL, cfg.Token)
+		if err == nil {
+			fmt.Println("  Bandwidth Usage")
+			fmt.Println("  ─────────────────────────────────────────")
+			fmt.Printf("  Tier:        %s\n", strings.Title(usage.Tier))
+			fmt.Printf("  Month:       %s\n", usage.Month)
+			fmt.Printf("  Used:        %s / %s (%.2f%%)\n", usage.UsedHuman, usage.LimitHuman, usage.PercentUsed)
+			fmt.Println()
+		}
 	}
 
 	// TODO: Actually check if tunnel is running (via PID file or similar)
@@ -94,9 +96,9 @@ type UsageResponse struct {
 	PercentUsed float64 `json:"percent_used"`
 }
 
-func fetchUsage(token string) (*UsageResponse, error) {
+func fetchUsage(serverURL, token string) (*UsageResponse, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
-	req, err := http.NewRequest("GET", defaultServer+"/api/usage", nil)
+	req, err := http.NewRequest("GET", serverURL+"/api/usage", nil)
 	if err != nil {
 		return nil, err
 	}

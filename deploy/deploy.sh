@@ -1,13 +1,38 @@
 #!/bin/bash
 # Quick deploy script - run from your local machine
 # Usage: ./deploy.sh
+#
+# Required environment variables (set in .env or export them):
+#   DEPLOY_SSH_KEY   - Path to SSH private key (e.g. ~/.ssh/id_rsa)
+#   DEPLOY_SERVER    - SSH target (e.g. root@example.com)
+#
+# Optional:
+#   DEPLOY_REMOTE_DIR    - Remote install dir (default: /opt/piportal)
+#   DEPLOY_DOWNLOADS_DIR - Remote downloads dir (default: /var/www/piportal/downloads)
 
 set -e
 
-SSH_KEY="~/.ssh/brett.rsa"
-SERVER="root@piportal.dev"
-REMOTE_DIR="/opt/piportal"
-DOWNLOADS_DIR="/var/www/piportal/downloads"
+# Load .env if present
+if [ -f "$(dirname "$0")/.env" ]; then
+    source "$(dirname "$0")/.env"
+fi
+
+# Validate required vars
+if [ -z "$DEPLOY_SSH_KEY" ]; then
+    echo "Error: DEPLOY_SSH_KEY not set"
+    echo "Create deploy/.env with: DEPLOY_SSH_KEY=~/.ssh/your_key"
+    exit 1
+fi
+if [ -z "$DEPLOY_SERVER" ]; then
+    echo "Error: DEPLOY_SERVER not set"
+    echo "Create deploy/.env with: DEPLOY_SERVER=root@your-server.com"
+    exit 1
+fi
+
+SSH_KEY="${DEPLOY_SSH_KEY}"
+SERVER="${DEPLOY_SERVER}"
+REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/opt/piportal}"
+DOWNLOADS_DIR="${DEPLOY_DOWNLOADS_DIR:-/var/www/piportal/downloads}"
 SSH_OPTS="-i ${SSH_KEY}"
 BASE_DIR="$(dirname "$0")/.."
 

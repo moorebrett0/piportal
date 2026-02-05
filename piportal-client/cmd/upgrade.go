@@ -40,13 +40,22 @@ func runUpgrade(cmd *cobra.Command, args []string) error {
 	fmt.Println("  ─────────────────────────────────────────")
 	fmt.Println()
 
+	// Load config to get server URL
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	if cfg.ServerURL == "" {
+		return fmt.Errorf("no server configured - run 'piportal setup' first")
+	}
+
 	// Get current version
 	currentVersion := Version
 	fmt.Printf("  Current version: %s\n", currentVersion)
 
 	// Check latest version from server
 	fmt.Println("  Checking for updates...")
-	latest, err := getLatestVersion()
+	latest, err := getLatestVersion(cfg.ServerURL)
 	if err != nil {
 		return fmt.Errorf("failed to check for updates: %w", err)
 	}
@@ -81,7 +90,7 @@ func runUpgrade(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Downloading piportal-linux-%s...\n", arch)
 
 	// Download new binary
-	downloadURL := fmt.Sprintf("%s/downloads/piportal-linux-%s", defaultServer, arch)
+	downloadURL := fmt.Sprintf("%s/downloads/piportal-linux-%s", cfg.ServerURL, arch)
 	newBinary, err := downloadBinary(downloadURL)
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
@@ -109,9 +118,9 @@ func runUpgrade(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getLatestVersion() (*VersionInfo, error) {
+func getLatestVersion(serverURL string) (*VersionInfo, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(defaultServer + "/api/version")
+	resp, err := client.Get(serverURL + "/api/version")
 	if err != nil {
 		return nil, err
 	}

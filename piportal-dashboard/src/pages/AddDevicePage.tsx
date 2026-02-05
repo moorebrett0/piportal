@@ -53,12 +53,7 @@ export default function AddDevicePage() {
           <p>Your device <strong>{subdomain}</strong> has been created.</p>
           <p>Save this token — you'll need it to connect your Pi:</p>
           <pre className="code-block">{createdToken}</pre>
-          <p>Then run on your Pi:</p>
-          <pre className="code-block">
-{`curl -fsSL https://piportal.dev/install.sh | bash
-piportal setup`}
-          </pre>
-          <p>When prompted for a token, paste the token above.</p>
+          <p>Then run <code>piportal setup</code> on your Pi and enter this token when prompted.</p>
           <button onClick={() => navigate('/dashboard')} className="btn">
             Go to Dashboard
           </button>
@@ -101,7 +96,7 @@ piportal setup`}
                 placeholder="my-pi"
                 autoFocus
               />
-              <span className="subdomain-suffix">.piportal.dev</span>
+              <span className="subdomain-suffix">.{window.location.hostname}</span>
             </div>
           </label>
           <button type="submit" className="btn" disabled={creating}>

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,16 +17,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultServer = "https://piportal.dev"
-
 var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Configure PiPortal (interactive)",
 	Long: `Interactive setup wizard for PiPortal.
 
 This will guide you through:
-  1. Choosing your subdomain
-  2. Setting your default local port
+  1. Entering your PiPortal server URL
+  2. Choosing your subdomain
+  3. Setting your default local port
 
 Your device will be registered automatically and configuration
 saved to ~/.config/piportal/config.yaml`,
@@ -45,12 +45,27 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	// Step 1: Choose subdomain
-	fmt.Println("  Step 1: Choose your subdomain")
+	// Step 1: Server URL
+	fmt.Println("  Step 1: PiPortal server URL")
 	fmt.Println("  ─────────────────────────────────────────")
 	fmt.Println()
-	fmt.Println("  Your tunnel will be available at:")
-	fmt.Println("  https://<subdomain>.piportal.dev")
+	fmt.Println("  Enter the URL of your PiPortal server")
+	fmt.Println("  (e.g. https://piportal.example.com)")
+	fmt.Println()
+	fmt.Print("  Server URL: ")
+	serverURL, _ := reader.ReadString('\n')
+	serverURL = strings.TrimSpace(serverURL)
+
+	// Validate and normalize server URL
+	serverURL, err := normalizeServerURL(serverURL)
+	if err != nil {
+		return err
+	}
+
+	// Step 2: Choose subdomain
+	fmt.Println()
+	fmt.Println("  Step 2: Choose your subdomain")
+	fmt.Println("  ─────────────────────────────────────────")
 	fmt.Println()
 	fmt.Print("  Subdomain: ")
 	subdomain, _ := reader.ReadString('\n')
@@ -60,9 +75,9 @@ func runSetup(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Step 2: Default local port
+	// Step 3: Default local port
 	fmt.Println()
-	fmt.Println("  Step 2: Default local port")
+	fmt.Println("  Step 3: Default local port")
 	fmt.Println("  ─────────────────────────────────────────")
 	fmt.Println()
 	fmt.Println("  Which local port should we forward to?")
@@ -81,26 +96,30 @@ func runSetup(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid port: %d", port)
 	}
 
-	// Step 3: Register with server
+	// Step 4: Register with server
 	fmt.Println()
-	fmt.Println("  Step 3: Registering device...")
+	fmt.Println("  Step 4: Registering device...")
 	fmt.Println("  ─────────────────────────────────────────")
 	fmt.Println()
 
-	token, err := registerDevice(subdomain)
+	token, err := registerDevice(serverURL, subdomain)
 	if err != nil {
 		fmt.Printf("  ✗ Registration failed: %v\n", err)
 		fmt.Println()
-		fmt.Println("  You can try a different subdomain, or register manually at:")
-		fmt.Println("  https://piportal.dev")
+		fmt.Println("  You can try a different subdomain, or register manually")
+		fmt.Println("  in the dashboard and use 'piportal start --token <token>'")
 		return err
 	}
 
-	fmt.Printf("  ✓ Registered as %s.piportal.dev\n", subdomain)
+	fmt.Printf("  ✓ Registered as %s\n", subdomain)
+
+	// Derive WebSocket URL from server URL
+	wsURL := deriveWebSocketURL(serverURL)
 
 	// Save config
 	config := map[string]interface{}{
-		"server":     "wss://piportal.dev/tunnel",
+		"server":     wsURL,
+		"server_url": serverURL,
 		"token":      token,
 		"subdomain":  subdomain,
 		"local_port": port,
@@ -117,7 +136,8 @@ func runSetup(cmd *cobra.Command, args []string) error {
 	fmt.Println("  ✓ Configuration saved!")
 	fmt.Println()
 	fmt.Printf("  Config file: %s\n", configPath)
-	fmt.Printf("  Your URL:    https://%s.piportal.dev\n", subdomain)
+	fmt.Printf("  Server:      %s\n", serverURL)
+	fmt.Printf("  Subdomain:   %s\n", subdomain)
 	fmt.Println()
 	fmt.Println("  To start your tunnel, run:")
 	fmt.Println()
@@ -131,15 +151,48 @@ func runSetup(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// normalizeServerURL validates and normalizes the server URL
+func normalizeServerURL(s string) (string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "", fmt.Errorf("server URL is required")
+	}
+
+	// Add https:// if no scheme provided
+	if !strings.HasPrefix(s, "http://") && !strings.HasPrefix(s, "https://") {
+		s = "https://" + s
+	}
+
+	// Parse and validate
+	u, err := url.Parse(s)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL: %w", err)
+	}
+
+	if u.Host == "" {
+		return "", fmt.Errorf("invalid URL: no host")
+	}
+
+	// Remove trailing slash
+	return strings.TrimSuffix(u.String(), "/"), nil
+}
+
+// deriveWebSocketURL converts https://example.com to wss://example.com/tunnel
+func deriveWebSocketURL(serverURL string) string {
+	wsURL := strings.Replace(serverURL, "https://", "wss://", 1)
+	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
+	return wsURL + "/tunnel"
+}
+
 // registerDevice calls the PiPortal API to register a new device
-func registerDevice(subdomain string) (string, error) {
+func registerDevice(serverURL, subdomain string) (string, error) {
 	reqBody, _ := json.Marshal(map[string]string{
 		"subdomain": subdomain,
 	})
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Post(
-		defaultServer+"/api/register",
+		serverURL+"/api/register",
 		"application/json",
 		bytes.NewReader(reqBody),
 	)

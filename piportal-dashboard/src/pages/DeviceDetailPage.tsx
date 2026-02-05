@@ -241,11 +241,7 @@ export default function DeviceDetailPage() {
 
         <div className="detail-section">
           <h2>Setup</h2>
-          <p>Run these commands on your Pi to connect this device:</p>
-          <pre className="code-block">
-{`curl -fsSL https://piportal.dev/install.sh | bash
-piportal start --port 8080`}
-          </pre>
+          <p>Run <code>piportal setup</code> on your Pi, then <code>piportal start --port 8080</code>.</p>
         </div>
 
         <div className="detail-section danger-zone">

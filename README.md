@@ -1,14 +1,28 @@
 # PiPortal
 
-Expose any Raspberry Pi to the internet with a single command. PiPortal gives each device a public HTTPS subdomain (`yourname.piportal.dev`) via a WebSocket tunnel — no port forwarding, no dynamic DNS.
+Self-hosted remote access for Raspberry Pi. Manage all your Pis from one dashboard — see what's online, open a terminal, run commands, and fix stuff from your browser. No VPN, no port forwarding.
 
 ## How It Works
 
 ```
-Pi (localhost:8080) ──WebSocket──▸ PiPortal Server ◂── https://yourname.piportal.dev
+Pi (localhost:8080) ──WebSocket──▸ Your PiPortal Server ◂── https://mypi.yourdomain.com
 ```
 
-A lightweight Go client on the Pi opens a persistent WebSocket connection to the server. The server holds a wildcard TLS cert for `*.piportal.dev` and routes incoming HTTPS requests through the tunnel to the Pi's local port.
+A lightweight Go client on the Pi opens a persistent outbound WebSocket connection to your server. The server holds a wildcard TLS cert for `*.yourdomain.com` and routes incoming HTTPS requests through the tunnel to the Pi's local port.
+
+**You bring your own domain and server.** PiPortal is fully self-hosted.
+
+## Features
+
+- **HTTPS tunnels** — Each device gets a public subdomain (e.g. `mypi.yourdomain.com`)
+- **Web dashboard** — See all devices, their status, and system metrics
+- **In-browser terminal** — Click a device, get a shell. No SSH keys needed.
+- **Group command execution** — Run a command across all devices in a tag group
+- **Live monitoring** — CPU temp, memory, disk, uptime — updated in real time
+- **Remote reboot** — One-click reboot from the dashboard
+- **Device tagging** — Organize devices with custom tags
+- **Bandwidth tracking** — Per-device usage tracking
+- **Self-updating client** — `piportal upgrade` pulls the latest binary from your server
 
 ## Project Structure
 
@@ -23,10 +37,57 @@ deploy/              Deployment scripts and docs
 
 - **Go 1.21+**
 - **Node.js 20+** and npm
+- A server with a domain and wildcard TLS cert (e.g. Caddy with Let's Encrypt)
+
+## Quick Start
+
+### 1. Build and deploy the server
+
+```bash
+# Build dashboard
+cd piportal-dashboard && npm install && npm run build
+cp -r dist ../piportal-server/dashboard/dist
+
+# Build server
+cd ../piportal-server
+GOOS=linux GOARCH=amd64 go build -o piportal-server .
+
+# Deploy to your server, configure with your domain
+# See deploy/deploy.md for full instructions
+```
+
+### 2. Install the client on a Pi
+
+```bash
+# Download from your server
+curl -fsSL https://yourdomain.com/downloads/piportal-linux-arm64 -o piportal
+chmod +x piportal
+sudo mv piportal /usr/local/bin/
+
+# Set up (interactive)
+piportal setup
+```
+
+The setup wizard will ask for:
+- Your PiPortal server URL
+- A subdomain for this device
+- The local port to forward
+
+### 3. Start the tunnel
+
+```bash
+piportal start
+```
+
+Or install as a system service:
+
+```bash
+sudo piportal service install
+```
 
 ## Local Development
 
-### 1. Dashboard
+### Dashboard
 
 ```bash
 cd piportal-dashboard
@@ -36,57 +97,52 @@ npm run dev
 
 Runs on `http://localhost:5173` with hot reload.
 
-### 2. Server
+### Server
 
 ```bash
 cd piportal-server
-
-# Copy in the dashboard build (or skip if running dashboard separately)
-cd ../piportal-dashboard && npm run build && cp -r dist ../piportal-server/dashboard/dist && cd ../piportal-server
-
-# Run in dev mode
-go run . -dev -http :8080
+go run . -dev -http :8080 -domain localhost
 ```
 
-Dev mode uses a built-in JWT secret and skips TLS. The server listens on `:8080` and serves:
+Dev mode uses a built-in JWT secret. The server serves:
 - `/dashboard/*` — React SPA
-- `/api/v1/*` — Dashboard REST API
+- `/api/v1/*` — REST API
 - `/tunnel` — WebSocket tunnel endpoint
-- `*.piportal.dev` — Proxies to connected Pi devices
+- `*.yourdomain.com` — Proxies to connected devices
 
-### 3. Client (on a Pi or any Linux machine)
+### Client
 
 ```bash
 cd piportal-client
-go run . setup   # Interactive — registers device, saves config
-go run . start   # Connects tunnel, forwards to local port
+go run . setup
+go run . start
 ```
 
-### Environment Variables
+## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PIPORTAL_JWT_SECRET` | JWT signing secret (required in production) | Dev secret in `-dev` mode |
-| `PIPORTAL_DOMAIN` | Base domain for tunnels | `piportal.dev` |
+| `PIPORTAL_DOMAIN` | Base domain for tunnels | — |
 | `PIPORTAL_DB` | Path to SQLite database file | `piportal.db` |
-| `PIPORTAL_DEV` | Set to `1` for dev mode | — |
 
 ## Deploying
 
-See [`deploy/deploy.md`](deploy/deploy.md) for full deployment docs. Quick version:
+See [`deploy/deploy.md`](deploy/deploy.md) for full deployment docs.
+
+Before running `deploy.sh`, create `deploy/.env`:
 
 ```bash
-# Build dashboard
-cd piportal-dashboard
-npm run build
-cp -r dist ../piportal-server/dashboard/dist
+cp deploy/.env.example deploy/.env
+# Edit with your SSH key and server
+```
 
-# Deploy everything
+Then:
+
+```bash
 cd deploy
 ./deploy.sh
 ```
-
-This cross-compiles client binaries (arm64/arm/amd64), builds the server (with the dashboard embedded), uploads to the production server, and restarts the service.
 
 ## Architecture
 
@@ -95,37 +151,11 @@ This cross-compiles client binaries (arm64/arm/amd64), builds the server (with t
 | Server | Go, SQLite, WebSocket, embedded SPA |
 | Dashboard | React 19, TypeScript, Vite, React Router |
 | Client | Go, Cobra CLI, WebSocket |
-| Infra | DigitalOcean, Caddy (reverse proxy + wildcard TLS), systemd |
-
-### Key Server Files
-
-| File | Purpose |
-|------|---------|
-| `main.go` | Entry point |
-| `handler.go` | HTTP routing and subdomain proxy |
-| `dashboard.go` | Dashboard API handlers + SPA serving |
-| `store.go` | SQLite data layer (users, devices, orgs, bandwidth) |
-| `tunnel.go` | Tunnel connection management |
-| `fleet.go` | Device fleet / metrics |
-| `auth.go` | JWT + password hashing |
-| `terminal.go` | WebSocket terminal relay |
-
-## Features
-
-- **HTTPS tunnels** — Each device gets a public `*.piportal.dev` subdomain
-- **Web dashboard** — Manage devices, view system metrics, monitor bandwidth
-- **In-browser terminal** — SSH-like shell access via WebSocket
-- **Tunnel forwarding toggle** — Enable/disable HTTP forwarding per device
-- **Bandwidth tracking** — Monthly usage with free (1 GB) and pro (100 GB) tiers
-- **Device tagging** — Group devices with custom tags
-- **Remote reboot** — Send reboot commands from the dashboard
-- **Group command execution** — Run shell commands across all devices in a tag group
-- **Self-updating client** — `piportal upgrade` pulls the latest binary
-- **One-line install** — `curl -fsSL https://piportal.dev/install.sh | bash`
+| Recommended Infra | Any VPS, Caddy (reverse proxy + wildcard TLS), systemd |
 
 ## Community
 
-Have a question, found a bug, or want to contribute? Join the Discord:
+Questions, bugs, or contributions? Join the Discord:
 
 **[discord.gg/uuYtV5Ukk7](https://discord.gg/uuYtV5Ukk7)**
 

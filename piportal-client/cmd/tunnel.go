@@ -111,7 +111,7 @@ func (t *Tunnel) runOnce() {
 
 	// Update subdomain from auth response if we got one
 	if t.subdomain != "" {
-		fmt.Printf("  ✓ Connected: https://%s.piportal.dev\n", t.subdomain)
+		fmt.Printf("  ✓ Connected as %s\n", t.subdomain)
 	} else {
 		fmt.Println("  ✓ Connected!")
 	}

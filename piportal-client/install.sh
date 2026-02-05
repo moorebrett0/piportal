@@ -1,11 +1,24 @@
 #!/bin/bash
 # PiPortal Installer
-# Usage: curl -fsSL https://piportal.dev/install.sh | bash
+#
+# Usage:
+#   curl -fsSL https://your-server.com/install.sh | bash
+#
+# Or with custom server:
+#   curl -fsSL https://your-server.com/install.sh | PIPORTAL_SERVER=https://your-server.com bash
 
 set -e
 
-VERSION="0.1.1"
-BASE_URL="https://piportal.dev/downloads"
+VERSION="0.1.4"
+# Use PIPORTAL_SERVER env var, or derive from script URL, or fail
+if [ -n "$PIPORTAL_SERVER" ]; then
+    BASE_URL="${PIPORTAL_SERVER}/downloads"
+else
+    echo "Error: PIPORTAL_SERVER environment variable not set"
+    echo ""
+    echo "Usage: curl -fsSL https://your-server.com/install.sh | PIPORTAL_SERVER=https://your-server.com bash"
+    exit 1
+fi
 
 # Colors
 GREEN='\033[0;32m'

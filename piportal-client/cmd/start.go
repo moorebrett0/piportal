@@ -48,6 +48,7 @@ func init() {
 // Config matches the config file structure
 type Config struct {
 	Server    string `yaml:"server"`
+	ServerURL string `yaml:"server_url"`
 	Token     string `yaml:"token"`
 	Subdomain string `yaml:"subdomain"`
 	LocalPort int    `yaml:"local_port"`
@@ -56,7 +57,6 @@ type Config struct {
 
 func loadConfig() (*Config, error) {
 	cfg := &Config{
-		Server:    "wss://tunnel.piportal.dev",
 		LocalHost: "127.0.0.1",
 		LocalPort: 8080,
 	}
@@ -108,9 +108,15 @@ func runStart(cmd *cobra.Command, args []string) error {
 		fmt.Println("No token configured. Run 'piportal setup' first, or use --token.")
 		fmt.Println()
 		fmt.Println("  piportal setup          # Interactive setup")
-		fmt.Println("  piportal start --token <token> --port 8080")
+		fmt.Println("  piportal start --server wss://example.com/tunnel --token <token> --port 8080")
 		fmt.Println()
 		return fmt.Errorf("token required")
+	}
+
+	if cfg.Server == "" {
+		fmt.Println("No server configured. Run 'piportal setup' first, or use --server.")
+		fmt.Println()
+		return fmt.Errorf("server required")
 	}
 
 	if cfg.LocalPort <= 0 || cfg.LocalPort > 65535 {
@@ -124,14 +130,15 @@ func runStart(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Printf("  PiPortal %s\n", Version)
 	fmt.Println("  ─────────────────────────────────────────")
+	fmt.Printf("  Server:      %s\n", cfg.Server)
 	fmt.Printf("  Forwarding:  %s:%d\n", cfg.LocalHost, cfg.LocalPort)
 	if cfg.Subdomain != "" {
-		fmt.Printf("  Public URL:  https://%s.piportal.dev\n", cfg.Subdomain)
+		fmt.Printf("  Subdomain:   %s\n", cfg.Subdomain)
 	}
 	fmt.Println()
 
 	// Check for updates in background
-	go checkForUpdates()
+	go checkForUpdates(cfg.ServerURL)
 
 	// Create and start tunnel
 	tunnel := NewTunnel(cfg)
@@ -161,8 +168,11 @@ func getConfigDir() string {
 }
 
 // checkForUpdates checks if a newer version is available (non-blocking)
-func checkForUpdates() {
-	latest, err := getLatestVersion()
+func checkForUpdates(serverURL string) {
+	if serverURL == "" {
+		return
+	}
+	latest, err := getLatestVersion(serverURL)
 	if err != nil {
 		return // Silently fail - don't disrupt the user
 	}
