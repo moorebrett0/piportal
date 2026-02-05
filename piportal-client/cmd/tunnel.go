@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -262,9 +263,92 @@ func (t *Tunnel) handleCommand(cmd *CommandMessage) {
 		if err := exec.Command("sudo", "reboot").Run(); err != nil {
 			log.Printf("Reboot failed: %v", err)
 		}
+	case "exec":
+		t.handleExecCommand(cmd)
 	default:
 		log.Printf("Unknown command: %s", cmd.Command)
 	}
+}
+
+const maxOutputBytes = 64 * 1024 // 64 KB output cap
+
+func (t *Tunnel) handleExecCommand(cmd *CommandMessage) {
+	shell := cmd.Shell
+	if shell == "" {
+		result := NewCommandResultMessage(cmd.CommandID, -1, "", "no shell command provided")
+		t.sendJSON(result)
+		return
+	}
+
+	if cmd.DryRun {
+		// For apt-get/apt commands, rewrite with -s (simulate) flag
+		if isAptCommand(shell) {
+			shell = insertAptSimulate(shell)
+		} else {
+			// For non-apt commands, just echo what would run
+			output := fmt.Sprintf("[dry run] would execute: %s", shell)
+			result := NewCommandResultMessage(cmd.CommandID, 0, base64Encode([]byte(output)), "")
+			t.sendJSON(result)
+			return
+		}
+	}
+
+	log.Printf("Executing shell command: %s (dry_run=%v)", shell, cmd.DryRun)
+
+	ctx, cancel := context.WithTimeout(t.ctx, 60*time.Second)
+	defer cancel()
+
+	execCmd := exec.CommandContext(ctx, "sh", "-c", shell)
+	outputBytes, err := execCmd.CombinedOutput()
+
+	// Cap output at 64 KB
+	if len(outputBytes) > maxOutputBytes {
+		outputBytes = outputBytes[:maxOutputBytes]
+	}
+
+	exitCode := 0
+	errMsg := ""
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		} else if ctx.Err() == context.DeadlineExceeded {
+			exitCode = -1
+			errMsg = "command timed out after 60s"
+		} else {
+			exitCode = -1
+			errMsg = err.Error()
+		}
+	}
+
+	result := NewCommandResultMessage(cmd.CommandID, exitCode, base64Encode(outputBytes), errMsg)
+	if sendErr := t.sendJSON(result); sendErr != nil {
+		log.Printf("Failed to send command result: %v", sendErr)
+	}
+}
+
+func isAptCommand(cmd string) bool {
+	// Check if command starts with apt-get or apt
+	for _, prefix := range []string{"apt-get ", "apt "} {
+		if len(cmd) >= len(prefix) && cmd[:len(prefix)] == prefix {
+			return true
+		}
+	}
+	return false
+}
+
+func insertAptSimulate(cmd string) string {
+	// Insert -s flag after "apt-get" or "apt"
+	if len(cmd) >= 8 && cmd[:8] == "apt-get " {
+		return "apt-get -s " + cmd[8:]
+	}
+	if len(cmd) >= 4 && cmd[:4] == "apt " {
+		return "apt -s " + cmd[4:]
+	}
+	return cmd
+}
+
+func base64Encode(data []byte) string {
+	return base64.StdEncoding.EncodeToString(data)
 }
 
 func (t *Tunnel) backoff() {

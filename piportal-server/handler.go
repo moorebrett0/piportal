@@ -301,11 +301,11 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PiPortal — Remote Raspberry Pi Management &amp; Monitoring Dashboard</title>
-    <meta name="description" content="Manage your Raspberry Pi fleet remotely with secure tunnels, live monitoring, and a unified dashboard. No inbound ports required.">
+    <title>PiPortal — Stop SSH'ing Into Every Pi</title>
+    <meta name="description" content="Manage all your Raspberry Pis from one dashboard. See what's online, run commands, open a terminal, and fix things from your browser. No VPN, no port forwarding.">
     <link rel="canonical" href="https://%[1]s/">
-    <meta property="og:title" content="PiPortal — Remote Raspberry Pi Management &amp; Monitoring Dashboard">
-    <meta property="og:description" content="Secure tunnels, live monitoring, and fleet management for Raspberry Pi and IoT devices.">
+    <meta property="og:title" content="PiPortal — Stop SSH'ing Into Every Pi">
+    <meta property="og:description" content="See what's online, run commands across devices, and fix stuff from your browser. No VPN or port forwarding needed.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://%[1]s/">
     <script type="application/ld+json">
@@ -315,7 +315,7 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
       "name": "PiPortal",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Linux",
-      "description": "Remote Raspberry Pi management and monitoring dashboard with secure tunnels.",
+      "description": "Manage all your Raspberry Pis from one dashboard. See what's online, run commands, and fix things from your browser.",
       "url": "https://%[1]s/",
       "offers": {
         "@type": "Offer",
@@ -456,8 +456,8 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 <section class="hero">
   <div class="container">
-    <h1>Manage Your <span>Raspberry Pi</span> Fleet from Anywhere</h1>
-    <p>Secure HTTPS tunnels, real-time device monitoring, and remote management for every Pi you own. All from a single dashboard, with no static IP, port forwarding, or VPN.</p>
+    <h1>Stop SSH'ing Into <span>Every Pi</span></h1>
+    <p>See which Pis are online, run commands across all of them, and fix stuff from your browser. No VPN, no port forwarding, no static IPs.</p>
     <a href="https://discord.gg/uuYtV5Ukk7" class="btn" target="_blank" rel="noopener">Join the Beta</a>
     <div class="stats-banner">
       <div class="stat"><div class="num">30s</div><div class="label">Setup time</div></div>
@@ -470,10 +470,10 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
   <div class="container">
     <div class="mission-inner">
       <div class="section-label">Why PiPortal</div>
-      <h2>Security Is Not an Afterthought</h2>
-      <p>PiPortal was built by a security professional who got tired of watching Pi enthusiasts and businesses alike punch holes in their networks just to access a device remotely. Open ports, weak credentials, and unencrypted tunnels are the norm. Attackers know it.</p>
-      <p>This project exists to give hobbyists and production teams the same level of security: zero inbound ports, encrypted connections by default, and access controls that actually work. Whether you run one Pi in your garage or a hundred in the field, your network should never be the weak link.</p>
-      <p class="sig">Built for the community, by someone who has seen what happens when remote access goes wrong.</p>
+      <h2>Your Network Shouldn't Be the Weak Link</h2>
+      <p>I built PiPortal because I got tired of seeing people punch holes in their networks just to reach a Pi. Open ports, shared passwords, unencrypted tunnels — it's how most people do it, and it's exactly what attackers look for.</p>
+      <p>PiPortal does it differently: your Pis only make outbound connections. Zero open ports, everything encrypted, every device gets its own token. Whether you have three Pis or thirty, you shouldn't have to choose between convenience and security.</p>
+      <p class="sig">Built by a security professional, for people who just want their Pis to work.</p>
     </div>
   </div>
 </section>
@@ -481,8 +481,8 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 <section class="alt-bg">
   <div class="container">
     <div class="section-label">Security</div>
-    <h2 class="section-title">Defense in Depth</h2>
-    <p class="section-subtitle">Every design decision in PiPortal starts with the same question: how do we keep your devices and your network safe?</p>
+    <h2 class="section-title">Secure by Default</h2>
+    <p class="section-subtitle">No open ports on your network. No passwords on disk. No unencrypted traffic. Ever.</p>
     <div class="security-grid">
       <div class="sec-item">
         <div class="sec-icon">&#128274;</div>
@@ -510,33 +510,33 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 <section>
   <div class="container">
-    <div class="section-label">Features</div>
-    <h2 class="section-title">Everything You Need</h2>
-    <p class="section-subtitle">Remote access, monitoring, and management without the complexity of VPNs or the risk of open ports.</p>
+    <div class="section-label">What You Get</div>
+    <h2 class="section-title">Fix Stuff From Your Browser</h2>
+    <p class="section-subtitle">No more opening SSH sessions one at a time. No more wondering which Pi is offline.</p>
     <div class="features-grid">
       <div class="feature-card">
-        <div class="icon">&#128268;</div>
-        <h3>Secure Tunnels</h3>
-        <p>Expose any local port on your Pi via a unique HTTPS subdomain. Share web apps, APIs, or dev servers with a link. No port forwarding required.</p>
-        <p class="detail">e.g. mypi.%[1]s routes to localhost:8080 on your device</p>
+        <div class="icon">&#128187;</div>
+        <h3>Terminal in Your Browser</h3>
+        <p>Click a device, get a shell. No SSH keys to manage, no VPN to connect to. Works through any NAT or firewall.</p>
+        <p class="detail">Full interactive terminal, right in the dashboard</p>
       </div>
       <div class="feature-card">
         <div class="icon">&#128200;</div>
-        <h3>Live Monitoring</h3>
-        <p>CPU temperature, memory usage, disk space, and uptime stream to your dashboard in real time over WebSocket. Spot problems before they become outages.</p>
-        <p class="detail">Updates every few seconds with no polling or page refresh</p>
+        <h3>See What's Actually Happening</h3>
+        <p>CPU temp, memory, disk space, and uptime for every Pi — live. Know when something's wrong before it's broken.</p>
+        <p class="detail">Updates every few seconds, no page refresh needed</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">&#128268;</div>
+        <h3>Share a Link, Not a Port</h3>
+        <p>Expose any local service via an HTTPS subdomain. Share a web app, API, or dashboard with a link. No port forwarding.</p>
+        <p class="detail">e.g. mypi.%[1]s routes to localhost:8080 on your device</p>
       </div>
       <div class="feature-card">
         <div class="icon">&#128260;</div>
-        <h3>Remote Reboot</h3>
-        <p>Restart any device from the dashboard with one click. No SSH session, no physical access needed. Ideal for headless Pis in hard-to-reach locations.</p>
-        <p class="detail">Device reconnects automatically after reboot</p>
-      </div>
-      <div class="feature-card">
-        <div class="icon">&#128421;</div>
-        <h3>Fleet Dashboard</h3>
-        <p>See every Pi at a glance: online/offline status, resource usage, and active tunnels. Manage your entire fleet from a single browser tab.</p>
-        <p class="detail">Works on desktop and mobile browsers</p>
+        <h3>Run Commands Across All Devices</h3>
+        <p>Tag your Pis into groups and run a command on all of them at once. Update packages, restart services, or check logs — in one click.</p>
+        <p class="detail">Dry-run mode to preview what'll happen first</p>
       </div>
     </div>
   </div>
@@ -545,34 +545,34 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 <section class="alt-bg">
   <div class="container">
     <div class="section-label">Use Cases</div>
-    <h2 class="section-title">Built for Real Projects</h2>
-    <p class="section-subtitle">Whether you have one Pi or a hundred, PiPortal keeps you connected.</p>
+    <h2 class="section-title">People Use PiPortal For</h2>
+    <p class="section-subtitle">Basically anything where you have a Pi somewhere and wish you could just reach it.</p>
     <div class="usecases-grid">
       <div class="usecase-card">
         <h3>Home Lab &amp; Self-Hosting</h3>
-        <p>Run web apps, media servers, or home automation on a Pi at home and access them from anywhere over HTTPS.</p>
+        <p>Access Home Assistant, Pi-hole, or Nextcloud from anywhere. No dynamic DNS, no port forwarding, just a link.</p>
         <ul>
-          <li>Access Home Assistant remotely</li>
-          <li>Share a Nextcloud instance</li>
-          <li>Expose a Pi-hole dashboard</li>
+          <li>Check on things from your phone</li>
+          <li>Share a dashboard with family</li>
+          <li>Reboot from the couch</li>
         </ul>
       </div>
       <div class="usecase-card">
-        <h3>IoT &amp; Edge Deployments</h3>
-        <p>Deploy Pis to remote sites like warehouses, farms, and retail locations, then manage them all centrally without VPNs.</p>
+        <h3>Pis in Other Locations</h3>
+        <p>Got Pis at a workshop, office, friend's house, or a client site? Monitor and manage them without being on the same network.</p>
         <ul>
-          <li>Monitor environmental sensors</li>
-          <li>Update kiosk software remotely</li>
-          <li>Reboot unresponsive devices</li>
+          <li>See if they're still running</li>
+          <li>Push updates remotely</li>
+          <li>Fix problems without driving there</li>
         </ul>
       </div>
       <div class="usecase-card">
-        <h3>Development &amp; Prototyping</h3>
-        <p>Share a work-in-progress running on your Pi with teammates or clients using a real HTTPS URL.</p>
+        <h3>Dev &amp; Prototyping</h3>
+        <p>Share what's running on your Pi with teammates or clients using a real HTTPS URL. Great for demos and testing webhooks.</p>
         <ul>
-          <li>Demo APIs and dashboards</li>
-          <li>Test webhooks from external services</li>
-          <li>Pair-program on embedded projects</li>
+          <li>Show a work-in-progress to anyone</li>
+          <li>Test webhooks from Stripe, GitHub, etc.</li>
+          <li>Debug from another machine</li>
         </ul>
       </div>
     </div>
@@ -666,8 +666,8 @@ piportal start --port 8080</code>
         <p>The dashboard shows real-time connection status. When your Pi reconnects, the agent automatically re-establishes its connection to the server. No manual intervention needed.</p>
       </div>
       <div class="faq-item">
-        <h3>Can I use PiPortal for production services?</h3>
-        <p>PiPortal is great for internal tools, prototypes, and home labs. For larger deployments, the Pro plan gives you unlimited devices with 100 GB of tunnel traffic each at a flat per-device rate.</p>
+        <h3>Can I use PiPortal for production stuff?</h3>
+        <p>Absolutely. It's great for internal tools, home labs, and small deployments. The Pro plan gives you unlimited devices with 100 GB of tunnel traffic each.</p>
       </div>
       <div class="faq-item">
         <h3>How is the free plan limited?</h3>
@@ -679,8 +679,8 @@ piportal start --port 8080</code>
 
 <section class="cta-banner">
   <div class="container">
-    <h2>Ready to manage your Pis securely?</h2>
-    <p>PiPortal is in beta. Join the Discord to get access, share feedback, and help shape the project.</p>
+    <h2>Done SSH'ing into Pis one at a time?</h2>
+    <p>PiPortal is in beta. Join the Discord to get access and tell us what's annoying you.</p>
     <a href="https://discord.gg/uuYtV5Ukk7" class="btn" target="_blank" rel="noopener">Join the Beta on Discord</a>
   </div>
 </section>
@@ -690,7 +690,7 @@ piportal start --port 8080</code>
     <div class="footer-grid">
       <div class="footer-brand">
         <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;color:#0f172a;"><img src="/logo.png" alt="PiPortal" style="height:24px;width:auto;">PiPortal</div>
-        <p>Secure remote access and monitoring for Raspberry Pi and IoT devices. Built by a security professional, for the community.</p>
+        <p>Manage all your Pis from one place. Built by a security professional who got tired of SSH'ing into everything.</p>
       </div>
       <div class="footer-col">
         <h4>Product</h4>
@@ -813,8 +813,8 @@ func (h *Handler) handleStatusPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // ClientVersion is the latest client version available for download
-var ClientVersion = "0.1.3"
-var ClientChangelog = "Added browser-based terminal (remote shell) support"
+var ClientVersion = "0.1.4"
+var ClientChangelog = "Added group command execution across tagged devices"
 
 func (h *Handler) handleVersion(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

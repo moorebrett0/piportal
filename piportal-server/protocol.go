@@ -15,7 +15,8 @@ const (
 	MessageTypePong       = "pong"
 	MessageTypeError      = "error"
 	MessageTypeMetrics    = "metrics"
-	MessageTypeCommand    = "command"
+	MessageTypeCommand       = "command"
+	MessageTypeCommandResult = "command_result"
 
 	// Terminal message types
 	MessageTypeTerminalOpen   = "terminal_open"
@@ -145,6 +146,8 @@ type CommandMessage struct {
 	Type      string `json:"type"`
 	CommandID string `json:"command_id"`
 	Command   string `json:"command"`
+	Shell     string `json:"shell,omitempty"`
+	DryRun    bool   `json:"dry_run,omitempty"`
 }
 
 func NewCommandMessage(commandID, command string) CommandMessage {
@@ -153,6 +156,26 @@ func NewCommandMessage(commandID, command string) CommandMessage {
 		CommandID: commandID,
 		Command:   command,
 	}
+}
+
+// NewExecCommand creates a command message for shell execution
+func NewExecCommand(commandID, shell string, dryRun bool) CommandMessage {
+	return CommandMessage{
+		Type:      MessageTypeCommand,
+		CommandID: commandID,
+		Command:   "exec",
+		Shell:     shell,
+		DryRun:    dryRun,
+	}
+}
+
+// CommandResultMessage is sent by the client after executing a command
+type CommandResultMessage struct {
+	Type      string `json:"type"`
+	CommandID string `json:"command_id"`
+	ExitCode  int    `json:"exit_code"`
+	Output    string `json:"output"`
+	Error     string `json:"error,omitempty"`
 }
 
 // --- Terminal Messages (Server <-> Client) ---
@@ -250,6 +273,10 @@ func ParseClientMessage(data []byte) (interface{}, string, error) {
 		msg = m
 	case MessageTypeTerminalClose:
 		var m TerminalCloseMessage
+		err = json.Unmarshal(data, &m)
+		msg = m
+	case MessageTypeCommandResult:
+		var m CommandResultMessage
 		err = json.Unmarshal(data, &m)
 		msg = m
 	default:

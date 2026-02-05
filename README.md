@@ -119,5 +119,12 @@ This cross-compiles client binaries (arm64/arm/amd64), builds the server (with t
 - **Bandwidth tracking** — Monthly usage with free (1 GB) and pro (100 GB) tiers
 - **Device tagging** — Group devices with custom tags
 - **Remote reboot** — Send reboot commands from the dashboard
+- **Group command execution** — Run shell commands across all devices in a tag group
 - **Self-updating client** — `piportal upgrade` pulls the latest binary
 - **One-line install** — `curl -fsSL https://piportal.dev/install.sh | bash`
+
+## Community
+
+Have a question, found a bug, or want to contribute? Join the Discord:
+
+**[discord.gg/uuYtV5Ukk7](https://discord.gg/uuYtV5Ukk7)**

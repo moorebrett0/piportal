@@ -15,7 +15,8 @@ const (
 	MessageTypePong       = "pong"
 	MessageTypeError      = "error"
 	MessageTypeMetrics    = "metrics"
-	MessageTypeCommand    = "command"
+	MessageTypeCommand       = "command"
+	MessageTypeCommandResult = "command_result"
 
 	// Terminal message types
 	MessageTypeTerminalOpen   = "terminal_open"
@@ -125,6 +126,28 @@ type CommandMessage struct {
 	Type      string `json:"type"`
 	CommandID string `json:"command_id"`
 	Command   string `json:"command"`
+	Shell     string `json:"shell,omitempty"`
+	DryRun    bool   `json:"dry_run,omitempty"`
+}
+
+// CommandResultMessage is sent back to the server after executing a command
+type CommandResultMessage struct {
+	Type      string `json:"type"`
+	CommandID string `json:"command_id"`
+	ExitCode  int    `json:"exit_code"`
+	Output    string `json:"output"`
+	Error     string `json:"error,omitempty"`
+}
+
+// NewCommandResultMessage creates a new command result message
+func NewCommandResultMessage(commandID string, exitCode int, output, errMsg string) CommandResultMessage {
+	return CommandResultMessage{
+		Type:      MessageTypeCommandResult,
+		CommandID: commandID,
+		ExitCode:  exitCode,
+		Output:    output,
+		Error:     errMsg,
+	}
 }
 
 // --- Terminal Messages (Server <-> Client) ---

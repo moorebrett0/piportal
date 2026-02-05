@@ -24,8 +24,9 @@ type Tunnel struct {
 	Device           *Device
 	Conn             *websocket.Conn
 	Manager          *TunnelManager
-	Responses        map[string]chan *ResponseMessage // requestID -> response channel
-	TerminalSessions map[string]*websocket.Conn       // sessionID -> browser WS conn
+	Responses        map[string]chan *ResponseMessage        // requestID -> response channel
+	CommandResults   map[string]chan *CommandResultMessage    // commandID -> result channel
+	TerminalSessions map[string]*websocket.Conn              // sessionID -> browser WS conn
 	Metrics          *MetricsMessage
 	MetricsUpdatedAt time.Time
 	mu               sync.Mutex
@@ -109,6 +110,7 @@ func NewTunnel(device *Device, conn *websocket.Conn, manager *TunnelManager) *Tu
 		Conn:             conn,
 		Manager:          manager,
 		Responses:        make(map[string]chan *ResponseMessage),
+		CommandResults:   make(map[string]chan *CommandResultMessage),
 		TerminalSessions: make(map[string]*websocket.Conn),
 		ctx:              ctx,
 		cancel:           cancel,
@@ -189,6 +191,18 @@ func (t *Tunnel) handleMessage(data []byte) {
 	case MessageTypeTerminalClose:
 		termClose := msg.(TerminalCloseMessage)
 		t.closeTerminalSession(termClose.SessionID)
+
+	case MessageTypeCommandResult:
+		cmdResult := msg.(CommandResultMessage)
+		t.mu.Lock()
+		if ch, ok := t.CommandResults[cmdResult.CommandID]; ok {
+			select {
+			case ch <- &cmdResult:
+			default:
+			}
+			delete(t.CommandResults, cmdResult.CommandID)
+		}
+		t.mu.Unlock()
 	}
 }
 
@@ -347,6 +361,40 @@ func (t *Tunnel) Close() {
 func (t *Tunnel) SendCommand(command string) error {
 	cmdID := fmt.Sprintf("cmd_%d", time.Now().UnixNano())
 	return t.SendJSON(NewCommandMessage(cmdID, command))
+}
+
+// SendExecCommand sends a shell command to the client and waits for the result
+func (t *Tunnel) SendExecCommand(shell string, dryRun bool) (*CommandResultMessage, error) {
+	cmdID := fmt.Sprintf("cmd_%d", time.Now().UnixNano())
+
+	// Create result channel
+	resultChan := make(chan *CommandResultMessage, 1)
+	t.mu.Lock()
+	t.CommandResults[cmdID] = resultChan
+	t.mu.Unlock()
+
+	// Clean up on exit
+	defer func() {
+		t.mu.Lock()
+		delete(t.CommandResults, cmdID)
+		t.mu.Unlock()
+	}()
+
+	// Send exec command to client
+	msg := NewExecCommand(cmdID, shell, dryRun)
+	if err := t.SendJSON(msg); err != nil {
+		return nil, fmt.Errorf("failed to send exec command: %w", err)
+	}
+
+	// Wait for result with 90s timeout
+	select {
+	case result := <-resultChan:
+		return result, nil
+	case <-time.After(90 * time.Second):
+		return nil, fmt.Errorf("command timed out")
+	case <-t.ctx.Done():
+		return nil, fmt.Errorf("tunnel closed")
+	}
 }
 
 // GetMetrics returns a copy of the latest metrics, or nil

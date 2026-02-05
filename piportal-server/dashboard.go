@@ -2,11 +2,14 @@ package main
 
 import (
 	"embed"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -61,6 +64,8 @@ func (h *Handler) handleDashboardAPI(w http.ResponseWriter, r *http.Request) {
 		h.AuthMiddleware(h.handleGetDevice)(w, r)
 	case strings.HasPrefix(path, "/api/v1/devices/") && r.Method == http.MethodDelete:
 		h.AuthMiddleware(h.handleDeleteDevice)(w, r)
+	case path == "/api/v1/commands/run" && r.Method == http.MethodPost:
+		h.AuthMiddleware(h.handleRunCommand)(w, r)
 	default:
 		jsonError(w, "Not Found", http.StatusNotFound)
 	}
@@ -776,5 +781,117 @@ func (h *Handler) handleSetDeviceOrg(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"org_id":  req.OrgID,
+	})
+}
+
+// --- Command Execution ---
+
+func (h *Handler) handleRunCommand(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r)
+
+	var req struct {
+		Command string `json:"command"`
+		OrgID   string `json:"org_id"`
+		DryRun  bool   `json:"dry_run"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if req.Command == "" {
+		jsonError(w, "command is required", http.StatusBadRequest)
+		return
+	}
+	if req.OrgID == "" {
+		jsonError(w, "org_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Verify user owns the org
+	org, err := h.store.GetOrganizationByID(req.OrgID)
+	if err != nil {
+		log.Printf("Run command org lookup error: %v", err)
+		jsonError(w, "Internal error", http.StatusInternalServerError)
+		return
+	}
+	if org == nil || org.UserID != user.ID {
+		jsonError(w, "Organization not found", http.StatusNotFound)
+		return
+	}
+
+	// Fetch all devices in the org owned by the user
+	devices, err := h.store.ListDevicesByUserAndOrg(user.ID, &req.OrgID)
+	if err != nil {
+		log.Printf("Run command list devices error: %v", err)
+		jsonError(w, "Internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if len(devices) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"results": []interface{}{},
+		})
+		return
+	}
+
+	type deviceResult struct {
+		DeviceID  string `json:"device_id"`
+		Subdomain string `json:"subdomain"`
+		ExitCode  int    `json:"exit_code"`
+		Output    string `json:"output"`
+		Error     string `json:"error,omitempty"`
+	}
+
+	results := make([]deviceResult, len(devices))
+	var wg sync.WaitGroup
+
+	for i, d := range devices {
+		results[i] = deviceResult{
+			DeviceID:  d.ID,
+			Subdomain: d.Subdomain,
+		}
+
+		tunnel := h.tunnels.GetTunnel(d.Subdomain)
+		if tunnel == nil {
+			results[i].ExitCode = -1
+			results[i].Error = "device offline"
+			continue
+		}
+
+		wg.Add(1)
+		go func(idx int, t *Tunnel) {
+			defer wg.Done()
+
+			cmdResult, err := t.SendExecCommand(req.Command, req.DryRun)
+			if err != nil {
+				results[idx].ExitCode = -1
+				results[idx].Error = fmt.Sprintf("command failed: %v", err)
+				return
+			}
+
+			results[idx].ExitCode = cmdResult.ExitCode
+			results[idx].Error = cmdResult.Error
+
+			// Decode base64 output to plain text for the API response
+			if cmdResult.Output != "" {
+				decoded, err := base64.StdEncoding.DecodeString(cmdResult.Output)
+				if err == nil {
+					results[idx].Output = string(decoded)
+				} else {
+					results[idx].Output = cmdResult.Output
+				}
+			}
+		}(i, tunnel)
+	}
+
+	wg.Wait()
+
+	log.Printf("Command executed on %d devices in org %s: %s (dry_run=%v)",
+		len(devices), org.Name, req.Command, req.DryRun)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"results": results,
 	})
 }

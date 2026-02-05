@@ -73,6 +73,18 @@ export interface ClaimResponse {
   url: string;
 }
 
+export interface CommandResult {
+  device_id: string;
+  subdomain: string;
+  exit_code: number;
+  output: string;
+  error: string;
+}
+
+export interface RunCommandResponse {
+  results: CommandResult[];
+}
+
 export const api = {
   signup: (email: string, password: string) =>
     request<AuthResponse>('/signup', {
@@ -142,4 +154,10 @@ export const api = {
 
   deleteOrg: (id: string) =>
     request<{ success: boolean }>(`/organizations/${id}`, { method: 'DELETE' }),
+
+  runCommand: (command: string, orgId: string, dryRun: boolean) =>
+    request<RunCommandResponse>('/commands/run', {
+      method: 'POST',
+      body: JSON.stringify({ command, org_id: orgId, dry_run: dryRun }),
+    }),
 };

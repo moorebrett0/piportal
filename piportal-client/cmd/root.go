@@ -8,7 +8,7 @@ import (
 )
 
 // Version is set at build time
-var Version = "0.1.3"
+var Version = "0.1.4"
 
 var rootCmd = &cobra.Command{
 	Use:   "piportal",
