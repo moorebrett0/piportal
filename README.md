@@ -128,3 +128,7 @@ This cross-compiles client binaries (arm64/arm/amd64), builds the server (with t
 Have a question, found a bug, or want to contribute? Join the Discord:
 
 **[discord.gg/uuYtV5Ukk7](https://discord.gg/uuYtV5Ukk7)**
+
+## License
+
+PiPortal is licensed under the [GNU Affero General Public License v3.0](LICENSE).
